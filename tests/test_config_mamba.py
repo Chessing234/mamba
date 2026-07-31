@@ -29,3 +29,12 @@ def test_mamba_config_round_trips_through_json():
     assert restored.d_model == 512
     assert restored.n_layer == 8
     assert restored.ssm_cfg == {"layer": "Mamba2"}
+
+
+def test_pad_vocab_size_multiple_rounds_up():
+    config = MambaConfig(vocab_size=50277, pad_vocab_size_multiple=8)
+    padded = config.vocab_size
+    if padded % config.pad_vocab_size_multiple != 0:
+        padded += config.pad_vocab_size_multiple - (padded % config.pad_vocab_size_multiple)
+    assert padded == 50280
+    assert padded % 8 == 0
