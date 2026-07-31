@@ -54,11 +54,15 @@ def create_block(
         ssm_layer = ssm_cfg.pop("layer", "Mamba1")
         ssm_layer_map = {
             "Mamba1": Mamba,
+            "Mamba": Mamba,
             "Mamba2": Mamba2,
             "Mamba3": Mamba3,
         }
         if ssm_layer not in ssm_layer_map:
-            raise ValueError(f"Invalid ssm_layer: {ssm_layer}, only support Mamba1, Mamba2, and Mamba3")
+            supported = ", ".join(sorted(ssm_layer_map))
+            raise ValueError(
+                f"Invalid ssm_layer: {ssm_layer!r}. Supported values: {supported}."
+            )
         mixer_cls = partial(
             ssm_layer_map[ssm_layer],
             layer_idx=layer_idx,
