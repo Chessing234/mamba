@@ -312,9 +312,13 @@ class MambaLMHeadModel(nn.Module, GenerationMixin):
 
         # Save the model's state_dict
         model_path = os.path.join(save_directory, 'pytorch_model.bin')
-        torch.save(self.state_dict(), model_path)
+        tmp_model_path = model_path + ".tmp"
+        torch.save(self.state_dict(), tmp_model_path)
+        os.replace(tmp_model_path, model_path)
 
         # Save the configuration of the model
         config_path = os.path.join(save_directory, 'config.json')
-        with open(config_path, 'w') as f:
+        tmp_config_path = config_path + ".tmp"
+        with open(tmp_config_path, 'w', encoding='utf-8') as f:
             json.dump(self.config.__dict__, f, indent=4)
+        os.replace(tmp_config_path, config_path)
