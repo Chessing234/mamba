@@ -295,6 +295,11 @@ def get_wheel_url():
     else:
         # We're using the CUDA version used to build torch, not the one currently installed
         # _, cuda_version_raw = get_cuda_bare_metal_version(CUDA_HOME)
+        if torch.version.cuda is None:
+            raise ValueError(
+                "Cannot guess a CUDA wheel URL without torch.version.cuda set; "
+                "install a CUDA-enabled PyTorch build or set MAMBA_FORCE_BUILD=TRUE."
+            )
         torch_cuda_version = parse(torch.version.cuda)
         # For CUDA 11, we only compile for CUDA 11.8, and for CUDA 12 we only compile for CUDA 12.3
         # to save CI time. Minor versions should be compatible.
@@ -363,8 +368,17 @@ class CachedWheelsCommand(_bdist_wheel):
             print("Raw wheel path", wheel_path)
             shutil.move(wheel_filename, wheel_path)
         except urllib.error.HTTPError:
-            print("Precompiled wheel not found. Building from source...")
-            # If the wheel could not be downloaded, build from source
+            print(
+                "Precompiled wheel not found for "
+                f"torch {torch.__version__}, Python {sys.version_info.major}.{sys.version_info.minor}, "
+                f"platform {get_platform()}. Building selective_scan_cuda from source..."
+            )
+            print(
+                "Source compilation can take 15–30+ minutes with little or no pip output. "
+                "Prebuilt wheels are published on GitHub releases for select torch/CUDA/Python "
+                "combinations; see README Installation. If you only need Mamba-2/3, omit "
+                "MAMBA_KEEP_CUDA_BUILD to skip this CUDA extension."
+            )
             super().run()
 
 setup(
