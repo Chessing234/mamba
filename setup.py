@@ -164,6 +164,7 @@ if KEEP_CUDA_BUILD:
         check_if_cuda_home_none(PACKAGE_NAME)
         # Check, if CUDA11 is installed for compute capability 8.0
 
+        bare_metal_version = None
         if CUDA_HOME is not None:
             _, bare_metal_version = get_cuda_bare_metal_version(CUDA_HOME)
             if bare_metal_version < Version("11.6"):
@@ -172,10 +173,17 @@ if KEEP_CUDA_BUILD:
                     "Note: make sure nvcc has a supported version by running nvcc -V."
                 )
 
+        if torch.version.cuda is None:
+            raise RuntimeError(
+                f"{PACKAGE_NAME} CUDA build requires a CUDA-enabled PyTorch build, "
+                f"but torch.version.cuda is None (torch {torch.__version__})."
+            )
+        torch_cuda_version = parse(torch.version.cuda)
+        cuda_version_for_arch = bare_metal_version if bare_metal_version is not None else torch_cuda_version
+
         # If system CUDA and PyTorch CUDA have different major versions,
         # clear TORCH_CUDA_ARCH_LIST to prevent cpp_extension from erroring
-        torch_cuda_version = parse(torch.version.cuda)
-        if bare_metal_version.major != torch_cuda_version.major:
+        if bare_metal_version is not None and bare_metal_version.major != torch_cuda_version.major:
             os.environ["TORCH_CUDA_ARCH_LIST"] = ""
 
         cc_flag.append("-gencode")
@@ -184,15 +192,15 @@ if KEEP_CUDA_BUILD:
         cc_flag.append("arch=compute_80,code=sm_80")
         cc_flag.append("-gencode")
         cc_flag.append("arch=compute_87,code=sm_87")
-        if bare_metal_version >= Version("11.8"):
+        if cuda_version_for_arch >= Version("11.8"):
             cc_flag.append("-gencode")
             cc_flag.append("arch=compute_90,code=sm_90")
-        if bare_metal_version >= Version("12.8"):
+        if cuda_version_for_arch >= Version("12.8"):
             cc_flag.append("-gencode")
             cc_flag.append("arch=compute_100,code=sm_100")
             cc_flag.append("-gencode")
             cc_flag.append("arch=compute_120,code=sm_120")
-        if bare_metal_version >= Version("13.0"):
+        if cuda_version_for_arch >= Version("13.0"):
             cc_flag.append("-gencode")
             cc_flag.append("arch=compute_103,code=sm_103")
             cc_flag.append("-gencode")
