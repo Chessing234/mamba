@@ -116,9 +116,11 @@ def check_if_cuda_home_none(global_option: str) -> None:
     # warn instead of error because user could be downloading prebuilt wheels, so nvcc won't be necessary
     # in that case.
     warnings.warn(
-        f"{global_option} was requested, but nvcc was not found.  Are you sure your environment has nvcc available?  "
+        f"{global_option} was requested, but nvcc was not found. Are you sure your environment has nvcc available? "
         "If you're installing within a container from https://hub.docker.com/r/pytorch/pytorch, "
-        "only images whose names contain 'devel' will provide nvcc."
+        "only images whose names contain 'devel' will provide nvcc. "
+        "Cloud notebooks (Colab/Kaggle) often lack nvcc unless you opt into MAMBA_KEEP_CUDA_BUILD "
+        "and compile selective_scan_cuda locally."
     )
 
 
