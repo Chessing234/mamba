@@ -2,7 +2,7 @@
 
 import torch
 
-from mamba_ssm.ops.tilelang.mamba3.mamba3_mimo import ensure_tilelang_contiguous
+from mamba_ssm.ops.tilelang.mamba3.tilelang_layout import ensure_tilelang_contiguous
 
 
 def test_ensure_tilelang_contiguous_none():
