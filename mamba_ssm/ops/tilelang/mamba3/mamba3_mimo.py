@@ -21,11 +21,13 @@ from mamba_ssm.ops.tilelang.mamba3.mamba3_mimo_fwd_varlen import mamba_mimo_forw
 
 from mamba_ssm.ops.tilelang.mamba3.mamba3_mimo_bwd import mamba_mimo_bwd_combined
 from mamba_ssm.ops.tilelang.mamba3.mamba3_mimo_bwd_varlen import mamba_mimo_bwd_combined_varlen
+from mamba_ssm.ops.tilelang.mamba3.tilelang_layout import ensure_tilelang_contiguous
 
 
 # =============================================================================
 # Autograd Function
 # =============================================================================
+
 
 class _Mamba3Function(torch.autograd.Function):
     """Custom autograd function for Mamba-3 with Triton/Tilelang kernels."""
@@ -63,21 +65,8 @@ class _Mamba3Function(torch.autograd.Function):
         ctx.fuse_pregate_headwise_rms_norm = fuse_pregate_headwise_rms_norm
         ctx.outproj_norm_eps = outproj_norm_eps
 
-        def _ensure_tilelang_contiguous(t: Optional[Tensor]) -> Optional[Tensor]:
-            """Make tensor truly contiguous with last-stride=1.
-
-            PyTorch's .contiguous() treats a size-1 trailing dimension as contiguous even when
-            stride(-1) != 1 (e.g. after transpose). TileLang kernels require physical stride 1.
-            """
-            if t is None:
-                return None
-            t = t.contiguous()
-            if t.stride(-1) != 1:
-                t = torch.empty(t.shape, device=t.device, dtype=t.dtype).copy_(t)
-            return t
-
         (Q, K, V, ADT, DT, Trap, Q_bias, K_bias, MIMO_V, MIMO_Z, MIMO_Out, Out_Norm_Weight, Angles, D, Z) = tuple(
-            _ensure_tilelang_contiguous(t)
+            ensure_tilelang_contiguous(t)
             for t in (
                 Q, K, V, ADT, DT, Trap, Q_bias, K_bias, MIMO_V, MIMO_Z, MIMO_Out, Out_Norm_Weight, Angles, D, Z,
             )
