@@ -1,9 +1,11 @@
-"""EOS stop conditions for decode() without requiring a real Mamba model."""
+"""EOS stop conditions for decode() without requiring a GPU."""
 from types import SimpleNamespace
+from unittest.mock import MagicMock
 
+import pytest
 import torch
 
-from mamba_ssm.utils.generation import decode
+from mamba_ssm.utils import generation as gen
 
 
 class _TinyLM(torch.nn.Module):
@@ -23,22 +25,28 @@ class _TinyLM(torch.nn.Module):
         return SimpleNamespace(logits=logits.unsqueeze(1))
 
 
+@pytest.fixture(autouse=True)
+def _stub_cuda_events(monkeypatch):
+    """decode() always constructs cuda.Event today; stub so CPU hosts can test stop logic."""
+    monkeypatch.setattr(torch.cuda, "Event", lambda *a, **k: MagicMock())
+    monkeypatch.setattr(torch.cuda, "synchronize", lambda *a, **k: None)
+
+
 def test_decode_stops_on_list_eos():
     model = _TinyLM([5, 7, 9, 11])
-    out = decode(
+    out = gen.decode(
         torch.tensor([[1, 2]]),
         model,
         max_length=10,
         top_k=1,
         eos_token_id=[7, 99],
     )
-    # prompt [1,2] + sampled 5 + sampled 7 (EOS) -> stop before 9
     assert out.sequences.tolist() == [[1, 2, 5, 7]]
 
 
 def test_decode_stops_on_int_eos():
     model = _TinyLM([3, 4, 5])
-    out = decode(
+    out = gen.decode(
         torch.tensor([[0]]),
         model,
         max_length=10,
